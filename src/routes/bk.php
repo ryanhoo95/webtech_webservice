@@ -17,8 +17,8 @@ $app->post('/api/login', function(Request $request, Response $response){
         $stmt = $db->prepare($sql);
         $password = md5($param->password);   
     
-        $stmt->bindParam(':matric_no', $param->matric_no, PDO::PARAM_STR);
-        $stmt->bindParam("pass", $password, PDO::PARAM_STR);
+        $stmt->bindParam(":matric_no", $param->matric_no, PDO::PARAM_STR);
+        $stmt->bindParam(":pass", $password, PDO::PARAM_STR);
 
         $stmt->execute();
 
@@ -51,7 +51,6 @@ $app->post('/api/login', function(Request $request, Response $response){
                 'password' => $password
             ])->withStatus(200);
         }
-        
     }
     catch(PDOException $e){
         GenError::unexpectedError($e);
