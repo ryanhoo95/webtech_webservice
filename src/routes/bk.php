@@ -17,8 +17,8 @@ $app->post('/api/login', function(Request $request, Response $response){
         $stmt = $db->prepare($sql);
         $password = md5($param->password);   
     
-        $stmt->bindParam(':matric_no', $param->matric_no, PDO::PARAM_STR);
-        $stmt->bindParam("pass", $password, PDO::PARAM_STR);
+        $stmt->bindParam(":matric_no", $param->matric_no, PDO::PARAM_STR);
+        $stmt->bindParam(":pass", $password, PDO::PARAM_STR);
 
         $stmt->execute();
 
@@ -45,10 +45,7 @@ $app->post('/api/login', function(Request $request, Response $response){
         else {
             return $response->withJson([
                 'status' => 'fail',
-                'message' => 'User not found',
-                'pass' => $param->password,
-                'matric_no' => $param->matric_no,
-                'password' => $password
+                'message' => 'User not found.',
             ])->withStatus(200);
         }
         
@@ -60,29 +57,8 @@ $app->post('/api/login', function(Request $request, Response $response){
     
 });
 
-//Get all users
-$app->get('/api/usersaa', function(Request $request, Response $response){
-    $db = new db();                
-    try{
-        //get DB object and connect
-        $db = $db->connect();
-        //execute statement
-        $sql = "SELECT * FROM `user`";
-        $stmt = $db->query($sql);
-        $users = $stmt->fetchAll(PDO::FETCH_OBJ);
-        return $response->withJson([
-            'status' => '1',
-            'data' => $users
-        ])->withStatus(200);
-    }
-    catch(PDOException $e){
-        GenError::unexpectedError($e);
-    }
-    finally{ $db = null; }
-});
-
-//Get user
-$app->post('/api/user', function(Request $request, Response $response){
+//logout
+$app->post('/api/logout', function(Request $request, Response $response){
     $db = new db();
     $param = json_decode($request->getBody());
     $user = GenError::authorizeUser($param->token);
@@ -92,13 +68,20 @@ $app->post('/api/user', function(Request $request, Response $response){
             //get DB object and connect
             $db = $db->connect();
             //execute statement
-            $sql = "SELECT * FROM `user`";
-            $stmt = $db->query($sql);
-            $users = $stmt->fetchAll(PDO::FETCH_OBJ);
+            $sql = "UPDATE `user` SET `token` = :token
+                     WHERE `user_id` = :user_id";
+
+            $stmt = $db->prepare($sql);
+            $token = null;
+
+            $stmt->bindParam(':token', $token, PDO::PARAM_NULL);
+            $stmt->bindParam(':user_id', $user->user_id, PDO::PARAM_INT);
+
+            $stmt->execute();
+
             return $response->withJson([
-                'status' => '1',
-                'data' => $users,
-                'param' => $user->name
+                'status' => 'success',
+                'message' => 'Logout successfully.',
             ])->withStatus(200);
         }
         catch(PDOException $e){
