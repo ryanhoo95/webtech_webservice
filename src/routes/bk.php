@@ -11,7 +11,7 @@ $app->post('/api/login', function(Request $request, Response $response){
         //get DB object and connect
         $db = $db->connect();
         //execute statement
-        $sql = "SELECT `token`, `user_id` FROM `user`
+        $sql = "SELECT `token`, `user_id` FROM `user` 
                 WHERE `matric_no` = :matric_no AND `password` = :pass";
 
         $stmt = $db->prepare($sql);
