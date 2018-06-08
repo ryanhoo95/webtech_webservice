@@ -7,7 +7,8 @@
         }
 
         public static function unexpectedError(PDOException $e){
-            echo '{"error":{"text": '.$e->getMessage().'}}';
+            echo '{ "status"    : "fail",
+                    "message"   : '.$e->getMessage().' }';
         }
 
         public static function authorizeUser($token) {
