@@ -243,7 +243,7 @@ $app->post('/api/addApplication', function(Request $request, Response $response)
             if(!empty($existingApplications)) {
                 return $response->withJson([
                     'status' => 'fail',
-                    'message' => 'Have pending/approved application.',
+                    'message' => 'Have pending/approved application.'
                 ])->withStatus(200);
             }
             else {
@@ -264,7 +264,7 @@ $app->post('/api/addApplication', function(Request $request, Response $response)
 
                 return $response->withJson([
                         'status' => 'success',
-                        'message' => 'Apply successfully.',
+                        'message' => 'Apply successfully.'
                     ])->withStatus(200);
                 }
         }
@@ -280,7 +280,7 @@ $app->post('/api/addApplication', function(Request $request, Response $response)
 });
 
 //cancel application
-$app->post('/api/logout', function(Request $request, Response $response){
+$app->post('/api/cancelApplication', function(Request $request, Response $response){
     $db = new db();
     $param = json_decode($request->getBody());
     $user = GenError::authorizeUser($param->token);
@@ -290,20 +290,18 @@ $app->post('/api/logout', function(Request $request, Response $response){
             //get DB object and connect
             $db = $db->connect();
             //execute statement
-            $sql = "UPDATE `user` SET `token` = :token
-                     WHERE `user_id` = :user_id";
+            $sql = "DELETE FROM `application`
+                    WHERE `application_id` = :application_id";
 
             $stmt = $db->prepare($sql);
-            $token = null;
 
-            $stmt->bindParam(':token', $token, PDO::PARAM_NULL);
-            $stmt->bindParam(':user_id', $user->user_id, PDO::PARAM_INT);
+            $stmt->bindParam(':application_id', $param->application_id, PDO::PARAM_INT);
 
             $stmt->execute();
 
             return $response->withJson([
                 'status' => 'success',
-                'message' => 'Logout successfully.',
+                'message' => 'Application is cancelled.',
             ])->withStatus(200);
         }
         catch(PDOException $e){
@@ -314,5 +312,175 @@ $app->post('/api/logout', function(Request $request, Response $response){
     else {
         GenError::unauthorizedAccess();
     }
+    
+});
+
+//get profile
+$app->post('/api/getProfile', function(Request $request, Response $response){
+    $db = new db();
+    $param = json_decode($request->getBody());
+    $user = GenError::authorizeUser($param->token);
+    
+    if($user) {
+        try{
+            //get DB object and connect
+            $db = $db->connect();
+            //execute statement
+            $sql = "SELECT `username`, `matric_no`, `gender`, `name`, `contact` 
+                    FROM `user` WHERE `user_id` = :user_id";
+
+            $stmt = $db->prepare($sql);
+
+            $stmt->bindParam(':user_id', $user->user_id, PDO::PARAM_INT);
+
+            $stmt->execute();
+
+            $profile = $stmt->fetch(PDO::FETCH_OBJ);
+
+            return $response->withJson([
+                'status' => 'success',
+                'data' => $profile
+            ])->withStatus(200);
+        }
+        catch(PDOException $e){
+            GenError::unexpectedError($e);
+        }
+        finally{ $db = null; }
+    }
+    else {
+        GenError::unauthorizedAccess();
+    }
+    
+});
+
+//edit profile
+$app->post('/api/editProfile', function(Request $request, Response $response){
+    $db = new db();
+    $param = json_decode($request->getBody());
+    $user = GenError::authorizeUser($param->token);
+    
+    if($user) {
+        try{
+            //get DB object and connect
+            $db = $db->connect();
+            //execute statement
+            $sql = "UPDATE `user` SET `name` = :name, `contact` = :contact, `gender` = :gender 
+                    WHERE `user_id` = :user_id";
+
+            $stmt = $db->prepare($sql);
+
+            $stmt->bindParam(':name', $param->name, PDO::PARAM_STR);
+            $stmt->bindParam(':contact', $param->contact, PDO::PARAM_STR);
+            $stmt->bindParam(':gender', $param->gender, PDO::PARAM_INT);
+            $stmt->bindParam(':user_id', $user->user_id, PDO::PARAM_INT);
+
+            $stmt->execute();
+
+            return $response->withJson([
+                'status' => 'success',
+                'message' => 'Profile is updated',
+            ])->withStatus(200);
+        }
+        catch(PDOException $e){
+            GenError::unexpectedError($e);
+        }
+        finally{ $db = null; }
+    }
+    else {
+        GenError::unauthorizedAccess();
+    }
+    
+});
+
+//change password
+$app->post('/api/changePassword', function(Request $request, Response $response){
+    $db = new db();
+    $param = json_decode($request->getBody());
+    $user = GenError::authorizeUser($param->token);
+    
+    if($user) {
+        try{
+            //get DB object and connect
+            $db = $db->connect();
+            //execute statement
+            $sql = "UPDATE `user` SET `password` = :password 
+                    WHERE `user_id` = :user_id";
+
+            $stmt = $db->prepare($sql);
+
+            $password = md5($param->password);
+
+            $stmt->bindParam(':password', $password, PDO::PARAM_STR);
+            $stmt->bindParam(':user_id', $user->user_id, PDO::PARAM_INT);
+
+            $stmt->execute();
+
+            return $response->withJson([
+                'status' => 'success',
+                'message' => 'Password is updated',
+            ])->withStatus(200);
+        }
+        catch(PDOException $e){
+            GenError::unexpectedError($e);
+        }
+        finally{ $db = null; }
+    }
+    else {
+        GenError::unauthorizedAccess();
+    }
+    
+});
+
+//reset password
+$app->post('/api/resetPassword', function(Request $request, Response $response){
+    $db = new db();
+    $param = json_decode($request->getBody());
+
+    try{
+        //get DB object and connect
+        $db = $db->connect();
+        //execute statement
+        $sql = "SELECT `matric_no`, `user_id` FROM `user`
+                WHERE `username` = :username";
+
+        $stmt = $db->prepare($sql);
+
+        $username = strtoupper($param->username);
+
+        $stmt->bindParam(':username', $username, PDO::PARAM_STR);
+
+        $stmt->execute();
+
+        $user = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if($user) {
+            $sql2 = "UPDATE `user` SET `password` = :password 
+                     WHERE `user_id` = :user_id";
+
+            $stmt2 = $db->prepare($sql2);
+
+            $password = md5($user->matric_no);
+
+            $stmt2->bindParam(':password', $password, PDO::PARAM_STR);
+            $stmt2->bindParam(':user_id', $user->user_id, PDO::PARAM_INT);
+
+            $stmt2->execute();
+
+            return $response->withJson([
+                'status' => 'success',
+                'message' => 'Password is reset.',
+            ])->withStatus(200);
+        }
+        else {
+            return $response->withJson([
+                'status' => 'fail',
+                'message' => 'User not found.',
+            ])->withStatus(200);
+        }
+    }
+    catch(PDOException $e){
+        GenError::unexpectedError($e);
+    }
+    finally{ $db = null; }
     
 });
