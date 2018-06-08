@@ -49,7 +49,6 @@ $app->post('/api/login', function(Request $request, Response $response){
                 'message' => 'Invalid login credential.',
             ])->withStatus(200);
         }
-        
     }
     catch(PDOException $e){
         GenError::unexpectedError($e);
