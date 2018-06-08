@@ -1,6 +1,17 @@
 <?php
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+use Slim\Http\UploadedFile;
+
+function uploadFile($directory, $uploadedFile)
+{
+    $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+    $basename = bin2hex(random_bytes(8)); // see http://php.net/manual/en/function.random-bytes.php
+    $filename = sprintf('%s.%0.8s', $basename, $extension);
+    
+    $uploadedFile->moveTo($directory . DIRECTORY_SEPARATOR . $filename);
+    return $filename;
+}
 
 $app->post('/api/getAllApplications', function(Request $request, Response $response){
     $db = new db();
@@ -171,7 +182,7 @@ $app->post('/api/getAllRoomTypes', function(Request $request, Response $response
     $param = json_decode($request->getBody());
     $user = GenError::authorizeUser($param->token);
     
-    if($user && $user->user_type == "0") {
+    if($user) {
         try{
             //get DB object and connect
             $db = $db->connect();
@@ -208,15 +219,14 @@ $app->post('/api/addRoomType', function(Request $request, Response $response){
 
             //prepare state and execute     
             $sql = "INSERT INTO `roomtype` 
-                        (`roomtype_name`, `description`, `price`, `image`, `available_room_num`, `status`) 
+                        (`roomtype_name`, `description`, `price`, `available_room_num`, `status`) 
                     VALUES 
-                        (:roomtype_name, :description, :price, :image, :available_room_num, 1)";
+                        (:roomtype_name, :description, :price, :available_room_num, 1)";
 
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':roomtype_name', $param->roomtype_name, PDO::PARAM_STR);
             $stmt->bindParam(':description', $param->description, PDO::PARAM_STR);    
             $stmt->bindParam(':price', $param->price, PDO::PARAM_STR);                    
-            $stmt->bindParam(':image', $param->image, PDO::PARAM_STR);
             $stmt->bindParam(':available_room_num', $param->available_room_num, PDO::PARAM_INT);
 
             $stmt->execute();
@@ -247,7 +257,7 @@ $app->post('/api/updateRoomType', function(Request $request, Response $response)
 
             //prepare state and execute     
             $sql = "UPDATE `roomtype` SET
-                    `roomtype_name` = :roomtype_name, `description` = :description, `price` = :price, `image` = :image, `available_room_num` = :available_room_num, `status` = :status
+                    `roomtype_name` = :roomtype_name, `description` = :description, `price` = :price, `available_room_num` = :available_room_num, `status` = :status
                     WHERE `roomtype_id` = :roomtype_id";
 
             $stmt = $db->prepare($sql);
@@ -255,7 +265,6 @@ $app->post('/api/updateRoomType', function(Request $request, Response $response)
             $stmt->bindParam(':roomtype_name', $param->roomtype_name, PDO::PARAM_STR);
             $stmt->bindParam(':description', $param->description, PDO::PARAM_STR);    
             $stmt->bindParam(':price', $param->price, PDO::PARAM_STR);                    
-            $stmt->bindParam(':image', $param->image, PDO::PARAM_STR);
             $stmt->bindParam(':available_room_num', $param->available_room_num, PDO::PARAM_INT);   
             $stmt->bindParam(':status', $param->status, PDO::PARAM_INT);                               
 
@@ -269,6 +278,114 @@ $app->post('/api/updateRoomType', function(Request $request, Response $response)
             GenError::unexpectedError($e);
         }
         finally{ $db = null; }
+    }
+    else{
+        GenError::unauthorizedAccess();
+    }
+});
+
+$app->post('/api/disableRoomType', function(Request $request, Response $response){
+    $db = new db();
+    $param = json_decode($request->getBody());
+    $user = GenError::authorizeUser($param->token);
+    
+    if($user && $user->user_type == "0") {
+        try{
+            //get DB object and connect
+            $db = $db->connect();
+
+            //prepare state and execute     
+            $sql = "UPDATE `roomtype` SET
+                    `status` = 0
+                    WHERE `roomtype_id` = :roomtype_id";
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':roomtype_id', $param->roomtype_id, PDO::PARAM_INT);            
+            $stmt->execute();
+
+            if($stmt->rowCount() == 1){
+                //update all application of this roomtype to 2 (rejected) 
+                $sql = "UPDATE `application` SET
+                        `status` = 2
+                        WHERE `roomtype_id` = :roomtype_id";
+
+                $stmt1 = $db->prepare($sql);
+                $stmt1->bindParam(':roomtype_id', $param->roomtype_id, PDO::PARAM_INT);            
+                $stmt1->execute();
+
+                return $response->withJson([
+                    'status' => 'success'
+                ])->withStatus(200);
+            }
+            else{
+                return $response->withJson([
+                    'status' => 'fail',
+                    'error' => 'fail to update row'
+                ])->withStatus(200);
+            }
+            
+        }
+        catch(PDOException $e){
+            GenError::unexpectedError($e);
+        }
+        finally{ $db = null; }
+    }
+    else{
+        GenError::unauthorizedAccess();
+    }
+});
+
+$app->post('/api/uploadRoomPic', function(Request $request, Response $response){
+    $db = new db();
+    $user = GenError::authorizeUser($request->getParam('token'));
+    
+    //get the picture
+    $directory = dirname( __DIR__, 2 ) . '/uploads';
+    
+    if($user && $user->user_type == "0") {
+        $files = $request->getUploadedFiles();
+    
+        if (empty($files['file'])) {
+            throw new \RuntimeException('Expected a image a file');
+        }
+
+        $file = $files['file'];
+    
+        if ($file->getError() === UPLOAD_ERR_OK) {
+            $filename = uploadFile($directory, $file);
+
+            try{
+                //get DB object and connect
+                $db = $db->connect();
+        
+                //prepare state and execute     
+                $sql = "UPDATE `roomtype` SET
+                    `image` = :image
+                    WHERE `roomtype_id` = :roomtype_id";
+
+                $stmt = $db->prepare($sql);
+                $stmt->bindParam(':roomtype_id', $request->getParam('roomtype_id'), PDO::PARAM_INT);            
+                $stmt->bindParam(':image', $filename, PDO::PARAM_STR);                               
+
+                $stmt->execute();
+
+                return $response->withJson([
+                    'status' => 'sucess',
+                    'filename' => $filename,
+                    'roomtype_id' => $request->getParam('roomtype_id')
+                ])->withStatus(200);
+            }
+            catch(PDOException $e){
+                GenError::unexpectedError($e);
+            }
+            finally{ $db = null; }  
+        }
+        else{
+            return $response->withJson([
+                'status' => 'fail',
+                'error' => 'uploaded file is invalid'
+            ])->withStatus(200);
+        }
     }
     else{
         GenError::unauthorizedAccess();
