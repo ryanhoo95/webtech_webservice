@@ -276,30 +276,21 @@ $app->post('/api/addRoomType', function(Request $request, Response $response){
         $files = $request->getUploadedFiles();
     
         if (empty($files['file'])) {
-            throw new \RuntimeException('Expected a image a file');
-        }
-
-        $file = $files['file'];
-    
-        if ($file->getError() === UPLOAD_ERR_OK) {
-            $filename = uploadFile($directory, $file);
-
             try{
                 //get DB object and connect
                 $db = $db->connect();
         
                 //prepare state and execute     
                 $sql = "INSERT INTO `roomtype` 
-                            (`roomtype_name`, `description`, `price`, `available_room_num`, `status`, `image`) 
+                            (`roomtype_name`, `description`, `price`, `available_room_num`, `status`) 
                         VALUES 
-                            (:roomtype_name, :description, :price, :available_room_num, 1, :image)";
+                            (:roomtype_name, :description, :price, :available_room_num, 1)";
 
                 $stmt = $db->prepare($sql);
                 $stmt->bindValue(':roomtype_name', $request->getParam('roomtype_name'), PDO::PARAM_STR);
                 $stmt->bindValue(':description', $request->getParam('description'), PDO::PARAM_STR);    
                 $stmt->bindValue(':price', $request->getParam('price'), PDO::PARAM_STR);                    
                 $stmt->bindValue(':available_room_num', $request->getParam('available_room_num'), PDO::PARAM_INT);       
-                $stmt->bindValue(':image', $filename, PDO::PARAM_STR);                                                               
 
                 $stmt->execute();
 
@@ -312,11 +303,48 @@ $app->post('/api/addRoomType', function(Request $request, Response $response){
             }
             finally{ $db = null; }  
         }
+
         else{
-            return $response->withJson([
-                'status' => 'fail',
-                'error' => 'uploaded file is invalid'
-            ])->withStatus(200);
+            $file = $files['file'];
+        
+            if ($file->getError() === UPLOAD_ERR_OK) {
+                $filename = uploadFile($directory, $file);
+
+                try{
+                    //get DB object and connect
+                    $db = $db->connect();
+            
+                    //prepare state and execute     
+                    $sql = "INSERT INTO `roomtype` 
+                                (`roomtype_name`, `description`, `price`, `available_room_num`, `status`, `image`) 
+                            VALUES 
+                                (:roomtype_name, :description, :price, :available_room_num, 1, :image)";
+
+                    $stmt = $db->prepare($sql);
+                    $stmt->bindValue(':roomtype_name', $request->getParam('roomtype_name'), PDO::PARAM_STR);
+                    $stmt->bindValue(':description', $request->getParam('description'), PDO::PARAM_STR);    
+                    $stmt->bindValue(':price', $request->getParam('price'), PDO::PARAM_STR);                    
+                    $stmt->bindValue(':available_room_num', $request->getParam('available_room_num'), PDO::PARAM_INT);       
+                    $stmt->bindValue(':image', $filename, PDO::PARAM_STR);                                                               
+
+                    $stmt->execute();
+
+                    return $response->withJson([
+                        'status' => 'success',
+                    ])->withStatus(200);
+                }
+                catch(PDOException $e){
+                    GenError::unexpectedError($e);
+                }
+                finally{ $db = null; }  
+            }
+
+            else{
+                return $response->withJson([
+                    'status' => 'fail',
+                    'error' => 'uploaded file is invalid'
+                ])->withStatus(200);
+            }
         }
     }
     else{
