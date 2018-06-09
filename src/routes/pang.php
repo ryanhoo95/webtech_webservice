@@ -288,11 +288,11 @@ $app->post('/api/addRoomType', function(Request $request, Response $response){
                             (:roomtype_name, :description, :price, :available_room_num, 1, :image)";
 
                 $stmt = $db->prepare($sql);
-                $stmt->bindParam(':roomtype_name', $request->getParam('roomtype_name'), PDO::PARAM_STR);
-                $stmt->bindParam(':description', $request->getParam('description'), PDO::PARAM_STR);    
-                $stmt->bindParam(':price', $request->getParam('price'), PDO::PARAM_STR);                    
-                $stmt->bindParam(':available_room_num', $request->getParam('available_room_num'), PDO::PARAM_INT);       
-                $stmt->bindParam(':image', $filename, PDO::PARAM_STR);                                                               
+                $stmt->bindValue(':roomtype_name', $request->getParam('roomtype_name'), PDO::PARAM_STR);
+                $stmt->bindValue(':description', $request->getParam('description'), PDO::PARAM_STR);    
+                $stmt->bindValue(':price', $request->getParam('price'), PDO::PARAM_STR);                    
+                $stmt->bindValue(':available_room_num', $request->getParam('available_room_num'), PDO::PARAM_INT);       
+                $stmt->bindValue(':image', $filename, PDO::PARAM_STR);                                                               
 
                 $stmt->execute();
 
@@ -338,12 +338,12 @@ $app->post('/api/updateRoomType', function(Request $request, Response $response)
                         WHERE `roomtype_id` = :roomtype_id";
 
                 $stmt = $db->prepare($sql);
-                $stmt->bindParam(':roomtype_id', $request->getParam('roomtype_id'), PDO::PARAM_INT);            
-                $stmt->bindParam(':roomtype_name', $request->getParam('roomtype_name'), PDO::PARAM_STR);
-                $stmt->bindParam(':description', $request->getParam('description'), PDO::PARAM_STR);    
-                $stmt->bindParam(':price', $request->getParam('price'), PDO::PARAM_STR);                    
-                $stmt->bindParam(':available_room_num', $request->getParam('available_room_num'), PDO::PARAM_INT);   
-                $stmt->bindParam(':status', $request->getParam('status'), PDO::PARAM_INT);                               
+                $stmt->bindValue(':roomtype_id', $request->getParam('roomtype_id'), PDO::PARAM_INT);            
+                $stmt->bindValue(':roomtype_name', $request->getParam('roomtype_name'), PDO::PARAM_STR);
+                $stmt->bindValue(':description', $request->getParam('description'), PDO::PARAM_STR);    
+                $stmt->bindValue(':price', $request->getParam('price'), PDO::PARAM_STR);                    
+                $stmt->bindValue(':available_room_num', $request->getParam('available_room_num'), PDO::PARAM_INT);   
+                $stmt->bindValue(':status', $request->getParam('status'), PDO::PARAM_INT);                               
 
                 $stmt->execute();
 
@@ -373,13 +373,13 @@ $app->post('/api/updateRoomType', function(Request $request, Response $response)
                             WHERE `roomtype_id` = :roomtype_id";
 
                     $stmt = $db->prepare($sql);
-                    $stmt->bindParam(':roomtype_id', $request->getParam('roomtype_id'), PDO::PARAM_INT);            
-                    $stmt->bindParam(':roomtype_name', $request->getParam('roomtype_name'), PDO::PARAM_STR);
-                    $stmt->bindParam(':description', $request->getParam('description'), PDO::PARAM_STR);    
-                    $stmt->bindParam(':price', $request->getParam('price'), PDO::PARAM_STR);                    
-                    $stmt->bindParam(':available_room_num', $request->getParam('available_room_num'), PDO::PARAM_INT);   
-                    $stmt->bindParam(':status', $request->getParam('status'), PDO::PARAM_INT);   
-                    $stmt->bindParam(':image', $filename, PDO::PARAM_STR);                                                                               
+                    $stmt->bindValue(':roomtype_id', $request->getParam('roomtype_id'), PDO::PARAM_INT);            
+                    $stmt->bindValue(':roomtype_name', $request->getParam('roomtype_name'), PDO::PARAM_STR);
+                    $stmt->bindValue(':description', $request->getParam('description'), PDO::PARAM_STR);    
+                    $stmt->bindValue(':price', $request->getParam('price'), PDO::PARAM_STR);                    
+                    $stmt->bindValue(':available_room_num', $request->getParam('available_room_num'), PDO::PARAM_INT);   
+                    $stmt->bindValue(':status', $request->getParam('status'), PDO::PARAM_INT);   
+                    $stmt->bindValue(':image', $filename, PDO::PARAM_STR);                                                                               
 
                     $stmt->execute();
 
@@ -404,42 +404,3 @@ $app->post('/api/updateRoomType', function(Request $request, Response $response)
         GenError::unauthorizedAccess();
     }
 });
-
-// $app->post('/api/updateRoomType', function(Request $request, Response $response){
-//     $db = new db();
-//     $param = json_decode($request->getBody());
-//     $user = GenError::authorizeUser($param->token);
-    
-//     if($user && $user->user_type == "0") {
-//         try{
-//             //get DB object and connect
-//             $db = $db->connect();
-
-//             //prepare state and execute     
-//             $sql = "UPDATE `roomtype` SET
-//                     `roomtype_name` = :roomtype_name, `description` = :description, `price` = :price, `available_room_num` = :available_room_num, `status` = :status
-//                     WHERE `roomtype_id` = :roomtype_id";
-
-//             $stmt = $db->prepare($sql);
-//             $stmt->bindParam(':roomtype_id', $param->roomtype_id, PDO::PARAM_INT);            
-//             $stmt->bindParam(':roomtype_name', $param->roomtype_name, PDO::PARAM_STR);
-//             $stmt->bindParam(':description', $param->description, PDO::PARAM_STR);    
-//             $stmt->bindParam(':price', $param->price, PDO::PARAM_STR);                    
-//             $stmt->bindParam(':available_room_num', $param->available_room_num, PDO::PARAM_INT);   
-//             $stmt->bindParam(':status', $param->status, PDO::PARAM_INT);                               
-
-//             $stmt->execute();
-
-//             return $response->withJson([
-//                 'status' => 'success',
-//             ])->withStatus(200);
-//         }
-//         catch(PDOException $e){
-//             GenError::unexpectedError($e);
-//         }
-//         finally{ $db = null; }
-//     }
-//     else{
-//         GenError::unauthorizedAccess();
-//     }
-// });
