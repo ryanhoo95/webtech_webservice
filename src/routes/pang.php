@@ -24,7 +24,14 @@ $app->post('/api/getAllApplications', function(Request $request, Response $respo
             $db = $db->connect();
             
             //execute statement
-            $sql = "SELECT * FROM `application`";
+            $sql = "SELECT `a`.`application_id`, `a`.`date`, `a`.`status`, 
+                    `a`.`assigned_room`, `r`.`roomtype_name`, `u`.`name`
+                    FROM `application` AS `a` 
+                    INNER JOIN `roomtype` AS `r` 
+                    ON `a`.`roomtype_id` = `r`.`roomtype_id`
+                    INNER JOIN `user` AS `u` 
+                    ON `a`.`user_id` = `u`.`user_id`
+                    ORDER BY `a`.`status`, `a`.`date` DESC";
             $stmt = $db->query($sql);
             $applications = $stmt->fetchAll(PDO::FETCH_OBJ);
 
@@ -94,7 +101,7 @@ $app->post('/api/approveApplication', function(Request $request, Response $respo
 
                     if($stmt1->rowCount() == 1){
                         return $response->withJson([
-                            'status' => 'sucess',
+                            'status' => 'success',
                         ])->withStatus(200);
                     }
 
@@ -157,7 +164,7 @@ $app->post('/api/rejectApplication', function(Request $request, Response $respon
 
             if($stmt->rowCount() == 1){
                 return $response->withJson([
-                    'status' => 'sucess',
+                    'status' => 'success',
                 ])->withStatus(200);
             }
             else{
@@ -297,7 +304,7 @@ $app->post('/api/addRoomType', function(Request $request, Response $response){
                 $stmt->execute();
 
                 return $response->withJson([
-                    'status' => 'sucess',
+                    'status' => 'success',
                 ])->withStatus(200);
             }
             catch(PDOException $e){
@@ -348,7 +355,7 @@ $app->post('/api/updateRoomType', function(Request $request, Response $response)
                 $stmt->execute();
 
                 return $response->withJson([
-                    'status' => 'sucess',
+                    'status' => 'success',
                 ])->withStatus(200);
             }
             catch(PDOException $e){
@@ -384,7 +391,7 @@ $app->post('/api/updateRoomType', function(Request $request, Response $response)
                     $stmt->execute();
 
                     return $response->withJson([
-                        'status' => 'sucess',
+                        'status' => 'success',
                     ])->withStatus(200);
                 }
                 catch(PDOException $e){
